@@ -1,0 +1,14 @@
+profile_list:
+  - display_name: "SciPy Notebook"
+    description: A Jupyter Notebook server with Python kernel and various Python packages pre-installed.
+    default: true
+    # this can be a callable as well
+    kubespawner_override:
+      # image_spec: hub.bccvl.org.au/jupyter/scipy-notebook:0.9.4
+      image_spec: hub.bccvl.org.au/jupyter/scipy-notebook:0.9.4
+  - display_name: "RStudio Notebook"
+    description: A Jupyter Notebook server with R kernel and various R packages including RStudio pre-installed.
+    default: false
+    kubespawner_override:
+      # image_spec: hub.bccvl.org.au/jupyter/r-notebook:0.9.4
+      image_spec: hub.bccvl.org.au/jupyter/r-notebook:0.9.4

@@ -1,0 +1,65 @@
+{
+  "realm" : "local",
+  "users" : [ {
+    "id" : "7901a097-d4cd-46d8-9630-d44bb4ac8d67",
+    "createdTimestamp" : 1528088265547,
+    "username" : "admin",
+    "enabled" : true,
+    "totp" : false,
+    "emailVerified" : false,
+    "firstName" : "Admin",
+    "credentials" : [ {
+      "type" : "password",
+      "hashedSaltedValue" : "a2VnR4vcqIwovSvxB0GwhtElkxhFShJUe88jNji1wakYlBzj3hLNU6foXBxSczTH0i60drrwFpvsk7gfOT3lGg==",
+      "salt" : "n3WcnDXv7ZAPZgKliueOVQ==",
+      "hashIterations" : 27500,
+      "counter" : 0,
+      "algorithm" : "pbkdf2-sha256",
+      "digits" : 0,
+      "period" : 0,
+      "createdDate" : 1528088274243,
+      "config" : { }
+    } ],
+    "disableableCredentialTypes" : [ "password" ],
+    "requiredActions" : [ ],
+    "realmRoles" : [ "uma_authorization", "offline_access" ],
+    "clientRoles" : {
+      "realm-management" : [ "realm-admin" ],
+      "workspace" : [ "user", "admin" ],
+      "jupyter" : [ "admin", "user" ],
+      "account" : [ "manage-account", "view-profile" ]
+    },
+    "notBefore" : 0,
+    "groups" : [ ]
+  }, {
+    "id" : "a80b31c0-362a-4372-b0b3-aa771962979f",
+    "createdTimestamp" : 1528088235529,
+    "username" : "user",
+    "enabled" : true,
+    "totp" : false,
+    "emailVerified" : false,
+    "firstName" : "user",
+    "credentials" : [ {
+      "type" : "password",
+      "hashedSaltedValue" : "jZI82Z/q94hWvgJFMg9cdAFjcQJZXRScrOvIJash1D2SLEjR3uKS8tvIMqtqfShiOpulC196bKLlqFSdX3BxNg==",
+      "salt" : "Pwef/Nq2/Enq8EcdT2AWIQ==",
+      "hashIterations" : 27500,
+      "counter" : 0,
+      "algorithm" : "pbkdf2-sha256",
+      "digits" : 0,
+      "period" : 0,
+      "createdDate" : 1528088251135,
+      "config" : { }
+    } ],
+    "disableableCredentialTypes" : [ "password" ],
+    "requiredActions" : [ ],
+    "realmRoles" : [ "uma_authorization", "offline_access" ],
+    "clientRoles" : {
+      "workspace" : [ "user" ],
+      "jupyter" : [ "user" ],
+      "account" : [ "manage-account", "view-profile" ]
+    },
+    "notBefore" : 0,
+    "groups" : [ ]
+  } ]
+}

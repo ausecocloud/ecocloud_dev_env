@@ -1,0 +1,18 @@
+{
+    "workspace": {
+        "url": "http://localhost:6543",
+        "client_id": "drive"
+    },
+    "jupyterhub": {
+        "url": "http://localhost:8010",
+        "client_id": "jupyter"
+    },
+    "keycloak": {
+        "url": "http://localhost:8080/auth",
+        "realm": "local",
+        "clientId": "workspaceapp"
+    },
+    "googleAnalytics": {
+        "tracking_id": "UA-XXXXXXXXX-Y"
+    }
+}

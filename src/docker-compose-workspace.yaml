@@ -1,0 +1,18 @@
+version: "3"
+
+services:
+
+  workspace:
+    build:
+      context: ./src/workspace
+      dockerfile: Dockerfile-dev
+    image: workspace
+    volumes:
+      - ./src/workspace/src/workspace:/code/workspace/src/workspace
+      - ./src/workspace/development.ini:/code/workspace/development.ini
+    network_mode: service:workspace_namespace
+    command:
+      - paster
+      - serve
+      - --reload
+      - /code/workspace/development.ini

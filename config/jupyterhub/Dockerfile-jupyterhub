@@ -1,0 +1,7 @@
+FROM hub.bccvl.org.au/jupyter/jupyterhub:0.9.4-4
+
+USER root
+
+RUN pip3 install https://github.com/jupyterhub/dockerspawner/archive/master.zip
+
+USER jupyter

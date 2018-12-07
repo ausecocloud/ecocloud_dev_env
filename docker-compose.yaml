@@ -1,0 +1,218 @@
+version: "3"
+
+services:
+
+
+  # export:
+  # docker-compose run --rm keycloak -Dkeycloak.migration.action=export -Dkeycloak.migration.provider=dir -Dkeycloak.migration.dir=/tmp/keycloak -Dkeycloak.migration.realmName=local
+  #   need to ctrl-c keycloak after that as it starts up as well
+  keycloak:
+    image: hub.bccvl.org.au/ecocloud/keycloak:4.4.0.Final
+    environment:
+      - KEYCLOAK_USER=admin
+      - KEYCLOAK_PASSWORD=admin
+      - KEYCLOAK_THEME_STATIC_MAX_AGE=-1
+      - KEYCLOAK_THEME_CACHE_THEMES=false
+      - KEYCLOAK_THEME_CACHE_TEMPLATES=false
+    command:
+      - -b
+      - 0.0.0.0
+      - -Dkeycloak.migration.action=import
+      - -Dkeycloak.migration.provider=dir
+      - -Dkeycloak.migration.dir=/tmp/keycloak
+      - -Dkeycloak.migration.realmName=local
+    ports:
+      - "8080:8080"
+    networks:
+      - ecocloud
+    volumes:
+      - keycloakdb:/opt/jboss/keycloak/standalone/data
+      - ./config/keycloak:/tmp/keycloak
+
+  jupyterproxy:
+    image: hub.bccvl.org.au/jupyter/configurable-http-proxy:3.1.1
+    environment:
+      - CONFIGPROXY_AUTH_TOKEN=proxytoken
+    ports:
+      - "8010:8000"
+    networks:
+      - ecocloud
+    command:
+      # listen externally for web requests
+      - "--ip=0.0.0.0"
+      - "--port=8000"
+      # listen externnaly for api calls
+      - "--api-ip=0.0.0.0"
+      - "--api-port=8001"
+
+  # jupyterhub_socat_8080:
+  # network namespace required to allow workspace access on container localhost to keycloak
+  # and to access all containers running inside this network namespace with name 'jupyterhub'
+  jupyterhub_namespace:
+    build:
+      context: ./config/socat
+    image: socat
+    # network_mode: service:jupyterhub
+    ports:
+      - "8081:8081"
+    networks:
+      ecocloud:
+        aliases:
+          - jupyterhub
+    command:
+      - socat
+      - TCP-LISTEN:8080,fork
+      - TCP:keycloak:8080
+
+  jupyterhub:
+    build:
+      context: .
+      dockerfile: ./config/jupyterhub/Dockerfile-jupyterhub
+    image: docker-jupyterhub:latest
+    user: root
+    # ports:
+    #   - "8081:8081"
+    environment:
+      - CONFIGPROXY_AUTH_TOKEN=proxytoken
+      - OAUTH2_USERNAME_KEY=sub
+      - OIDC_CONFIG_URL=http://localhost:8080/auth/realms/local/.well-known/openid-configuration
+      - OAUTH_CLIENT_ID=jupyter
+      - OAUTH_CLIENT_SECRET=d9a4b6eb-85dc-4a9c-b0dc-eea8f4bd6f38
+      # $(openssl rand -hex 32)
+      - JUPYTERHUB_CRYPT_KEY=a522699faeb398d211de4e2ba0e10e47203cf011e378118d2ce1e8665122aef0
+    volumes:
+      - ./config/jupyterhub/jupyterhub-config.yaml:/etc/jupyterhub/jupyterhub-config.yaml
+      - ./config/jupyterhub/profiles.yaml:/etc/jupyterhub/config/profiles.yaml
+      - ./config/jupyterhub/jupyterhub-extra.py:/etc/jupyterhub/config/jupyterhub-extra.py
+      - /var/run/docker.sock:/var/run/docker.sock:rw
+    # use network from namespace container
+    network_mode: service:jupyterhub_namespace
+    restart: on-failure
+    command:
+      - --DockerSpawner.network_name=${COMPOSE_PROJECT_NAME}_ecocloud
+
+  # workspace_socat_8080:
+  # network namespace required to allow workspace access on container localhost to keycloak
+  # and to access all containers running inside this network namespace with name 'workspace'
+  workspace_namespace:
+    build:
+      context: ./config/socat
+    image: socat
+    ports:
+      - "6543:6543"
+    networks:
+      ecocloud:
+        aliases:
+          - workspace
+    command:
+      - socat
+      - TCP-LISTEN:8080,fork
+      - TCP:keycloak:8080
+
+  workspace:
+    image: hub.bccvl.org.au/ecocloud/workspace:0.5.0
+    # ports:
+    #   - "6543:6543"
+    network_mode: service:workspace_namespace
+    # networks:
+    #   - ecocloud
+    environment:
+      # all these settings can be found in your openstack.rc file
+      - OS_AUTH_URL=${OS_AUTH_URL}
+      - OS_USERNAME=${OS_USERNAME}
+      - OS_PASSWORD=${OS_PASSWORD}
+      - OS_AUTH_TYPE=${OS_AUTH_TYPE}
+      - OS_PLOJECT_ID=${OS_PROJECT_ID}
+      - OS_PROJECT_NAME=${OS_PROJECT_NAME}
+      - OS_USER_DOMAIN_NAME=${OS_USER_DOMAIN_NAME}
+      - OS_PROJECT_DOMAIN_NAME=${OS_PROJECT_DOMAIN_NAME}
+      - OS_REGION_NAME=${OS_REGION_NAME}
+      - OS_INTERFACE=${OS_INTERFACE}
+      - OS_IDENTITY_API_VERSION=${OS_IDENTITY_API_VERSION}
+      # set this if the discovered storage url does'nt suite.
+      # OS_STORAGE_URL: "https://swift.rc.nectar.org.au/v1/AUTH_XXXXXX"
+
+      # Workspace app settings
+      # the container name to use
+      - WORKSPACE_CONTAINER=UserData
+      # pwgen -cns 32
+      - WORKSPACE_TEMP_URL_KEY=0OvH5W7ffDqDWVoNKmJF7KekCLOG3ZLT
+
+      # Openid Connect and OAuth settings
+      - OAUTHLIB_INSECURE_TRANSPORT=1
+      - OAUTHLIB_RELAX_TOKEN_SCOPE=1
+      - OIDC_ISSUER=http://localhost:8080/auth/realms/local
+      - OIDC_CLIENT_ID=workspace
+      # - OIDC_CLIENT_SECRET=9d5f810b-0e9c-4d68-bda6-499873db8d3e
+
+      # - OIDC_AUDIENCE=workspaceapp
+      - OIDC_VERIFY_AUD=False
+
+      # Session secret is optional, there is a default in the ini file that's ok to
+      # use for development
+      # pwgen -cns 64
+      - SESSION_SECRET=HFQeeXivvw9LxTlfblf8FwIMnqwHbVemtO2tMoN6yLinQYHMJU668NqJo7HfBmjK
+    volumes:
+      - ./config/workspace/workspace.ini:/etc/workspace/production.ini
+    restart: unless-stopped
+    command:
+      # - paster
+      # - serve
+      # - /etc/workspace/production.ini
+      - gunicorn
+      - --paste
+      - /etc/workspace/production.ini
+      # - -b
+      # - :6543
+
+  workspace-ui:
+    image: hub.bccvl.org.au/ecocloud/workspace-ui:0.6.0
+    ports:
+      - "5000:5000"
+    volumes:
+      - ./config/workspace/config.json:/usr/share/nginx/html/config.json
+    networks:
+      - ecocloud
+
+  statsd:
+    image: prom/statsd-exporter
+    ports:
+      # statsd port
+      # - "9125:9125"
+      # metrics port
+      - "9102:9102"
+    networks:
+      - ecocloud
+
+  smtp:
+    image: python:3
+    # ports:
+    #  - 25:25
+    networks:
+      - ecocloud
+    # for some reason, mails don't appear in docker logs without tty: True
+    # tty: True
+    command:
+      - python
+      - -um
+      - smtpd
+      - -n
+      - -c
+      - DebuggingServer
+      - 0.0.0.0:25
+
+  # swift???
+
+volumes:
+  jovyan:
+    driver: local
+    driver_opts:
+      type: none
+      device: ${PWD}/volumes/jovyan
+      o: bind
+
+  keycloakdb:
+
+networks:
+  ecocloud:
+

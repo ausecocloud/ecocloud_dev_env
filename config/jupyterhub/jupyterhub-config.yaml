@@ -1,0 +1,125 @@
+# can jupyter just load
+#       /srv/jupyterhub_config.json ???
+
+JupyterHub:
+  upgrade_db: true
+  # this is needed for the cull-idle servce to access user notebooks
+  # this will set JUPYTERHUB_ADMIN_ACCESS=1 on spawned notebook servers
+  # netbook server config could also set this in config file but this here
+  # needs to be set as well?
+  admin_access: true
+  allow_named_servers: false
+
+  authenticator_class: "keycloakauthenticator.KeyCloakAuthenticator"
+
+  cleanup_proxy: true
+  cleanup_servers: true
+
+  db_kwargs: {}
+  db_url: "sqlite:///jupyterhub.sqlite"
+
+  # if hub_ip is '0.0.0.0' then try to auto detect
+  # otherwise use hub_ip
+  hub_connect_url: "http://jupyterhub:8081"
+
+  # hub address bind
+  hub_bind_url: "http://0.0.0.0:8081"
+
+  # This is the address on which the proxy will bind.
+  bind_url: "http://localhost:8010"
+
+  logo_file: "/srv/jupyterhub/ecocloud_logo.svg"
+
+  ## Redirect user to server (if running), instead of control panel.
+  redirect_to_server: false
+
+  services:
+    - name: "ecocloud"
+      # the url the proxy will forward to
+      url: 'http://0.0.0.0:10100'
+      command:
+        - python3
+        - /usr/local/bin/ecocloud_hub_service.py
+        - --listen-url=http://0.0.0.0:10100
+    - name: "cull-idle"
+      # url: 'https://host:8888'
+      api_token: cull-secret
+      admin: true
+  #     command:
+  #       - "python"
+  #       - "/usr/local/bin/cull_idle_servers.py"
+  #       - "--timeout=3600"
+  #       - "--smtp=smtp"
+
+  spawner_class: "dockerspawner.DockerSpawner"
+  #spawner_class: "formkubespawner.FormKubeSpawner"
+  #spawner_class: "kubespawner.KubeSpawner"
+
+  statsd_host: ""
+  statsd_port: 8125
+  statsd_prefix: "jupyterhub"
+
+  tornado_settings:
+    headers:
+      Access-Control-Allow-Origin: "*"
+      # we may want to have PATH here as well... it's used to e.g. modify a users name
+      Access-Control-Allow-Methods: "OPTIONS, GET, HEAD, POST, DELETE"
+
+Proxy:
+  should_start: false
+
+ConfigurableHTTPProxy:
+  should_start: false
+  api_url: "http://jupyterproxy:8001"
+
+Authenticator:
+  auto_login: false
+  # JUPYTERHUB_CRYPTO_KEY environment variable must contain one
+  #  (or more, separated by ;) 32B encryption keys. These can be either base64 or
+  #  hex-encoded.
+  enable_auth_state: true
+
+GenericOAuthenticator:
+  login_service: Local OIDC
+  scope:
+    - openid
+    - email
+    # - profile
+    # scope determines permissions, and claims to be included in id_token
+  # client_id: OAUTH_CLIENT_ID
+  # client_secret: OAUTH_CLIENT_SECRET
+  # validate_server_cert: OAUTH_TLS_VERIFY != 0
+
+KeyCloakAuthenticator:
+  admin_role: "admin"
+  required_roles:
+    - "user"
+
+# TODO: check if this sets defaults everywhere?
+Spawner:
+  mem_limit: null
+  mem_guarantee: 2G
+  cpu_limit: null
+  cpu_guarantee: 1
+  # start at specific url when redirecting to notebook server
+  # e.g. notebook_dir = / and default_url = /tree/home/{username}
+  default_url: "/lab"
+  notebook_dir: /home/jovyan
+  http_timeout: 120
+  start_timeout: 300
+  # args:
+  #   - '--NotebookApp.allow_origin=*'
+
+DockerSpawner:
+  host_ip: "0.0.0.0"
+  image: "hub.bccvl.org.au/jupyter/scipy-notebook:0.9.4"
+  network_name: "ecocloud_dev_ecocloud"
+  volumes:
+    ecocloud_dev_jovyan: /home/jovyan
+
+
+NamespacedResourceReflector:
+  # network read timeout 6 minutes
+  request_timeout: 300
+  # watch timeout 3 minutes
+  timeout_seconds: 150

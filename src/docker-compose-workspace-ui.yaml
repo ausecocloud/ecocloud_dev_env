@@ -1,0 +1,13 @@
+version: "3"
+
+services:
+
+  workspace-ui:
+    image: node:8
+    volumes:
+      - ./config/workspace/config.json:/usr/share/nginx/html/config.json
+      - ./src/workspace-ui:/code/workspace-ui
+    command:
+      - bash
+      - -c
+      - "cd /code/workspace-ui ; yarn; yarn start"
